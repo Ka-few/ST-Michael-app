@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* stylelint-disable at-rule-no-unknown */
+body {
+  @apply bg-[#FAFAF8] text-slate-800 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+/* stylelint-enable at-rule-no-unknown */
