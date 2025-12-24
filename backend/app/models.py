@@ -19,6 +19,8 @@ class Member(db.Model):
     family = db.Column(db.String(150))  # optional grouping
     status = db.Column(db.String(50), default='active')  # active/inactive
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    district_id = db.Column(db.Integer, db.ForeignKey('district.id'))
+
 
 # ---------- Sacraments ----------
 class Sacrament(db.Model):
@@ -39,16 +41,16 @@ class Event(db.Model):
     date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# ---------- Attendance ----------
-class Attendance(db.Model):
+# ---------- Church Districts / Jumuiya ----------
+class District(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False)
-    status = db.Column(db.String(50), default='present')  # present / absent
+    name = db.Column(db.String(150), nullable=False, unique=True)
+    leader_name = db.Column(db.String(150))  # district leader / chairperson
+    description = db.Column(db.String(250))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    event = db.relationship('Event', backref=db.backref('attendances', lazy=True))
-    member = db.relationship('Member', backref=db.backref('attendances', lazy=True))
+    members = db.relationship('Member', backref='district', lazy=True)
+
 
 # ---------- Donations / Tithes ----------
 class Donation(db.Model):
@@ -60,3 +62,18 @@ class Donation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     member = db.relationship('Member', backref=db.backref('donations', lazy=True))
+
+# ---------- Announcements ----------
+class Announcement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    category = db.Column(
+        db.String(50),
+        default='general'
+    )  # general, mass, event, fundraising
+    publish_date = db.Column(db.Date, default=datetime.utcnow)
+    expiry_date = db.Column(db.Date)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    district_id = db.Column(db.Integer, db.ForeignKey('district.id'))
+
