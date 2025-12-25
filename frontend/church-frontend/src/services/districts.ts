@@ -12,3 +12,15 @@ export const createDistrict = async (data: {
   const res = await api.post("/districts/", data);
   return res.data;
 };
+
+export const updateDistrict = async (
+  id: number,
+  data: { name: string; leader_name?: string }
+) => {
+  const res = await api.put(`/districts/${id}`, data);
+  return res.data;
+};
+
+export const deleteDistrict = async (id: number) => {
+  await api.delete(`/districts/${id}`);
+};

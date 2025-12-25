@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
 import type { Member } from "../type/models";
 import { Page, Card } from "../components/ui";
+
+const PAGE_SIZE = 6;
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -14,6 +16,10 @@ export default function Members() {
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 🔍 Search & pagination state
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   // ================= FETCH =================
   const fetchMembers = () => {
@@ -28,6 +34,28 @@ export default function Members() {
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  // ================= FILTER =================
+  const filteredMembers = useMemo(() => {
+    const q = search.toLowerCase();
+    return members.filter(m =>
+      m.name.toLowerCase().includes(q) ||
+      m.contact.toLowerCase().includes(q) ||
+      (m.family || "").toLowerCase().includes(q)
+    );
+  }, [members, search]);
+
+  // ================= PAGINATION =================
+  const totalPages = Math.ceil(filteredMembers.length / PAGE_SIZE);
+
+  const paginatedMembers = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredMembers.slice(start, start + PAGE_SIZE);
+  }, [filteredMembers, page]);
+
+  useEffect(() => {
+    setPage(1); // reset page on search
+  }, [search]);
 
   // ================= FORM =================
   const handleChange = (
@@ -79,10 +107,7 @@ export default function Members() {
     <Page title="Parish Members">
       {/* FORM */}
       <Card className="mb-8">
-        <form
-          onSubmit={handleSubmit}
-          className="grid md:grid-cols-5 gap-4"
-        >
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-5 gap-4">
           <input
             name="name"
             value={form.name}
@@ -91,7 +116,6 @@ export default function Members() {
             placeholder="Full Name"
             required
           />
-
           <input
             name="contact"
             value={form.contact}
@@ -100,7 +124,6 @@ export default function Members() {
             placeholder="Phone"
             required
           />
-
           <input
             name="address"
             value={form.address}
@@ -108,7 +131,6 @@ export default function Members() {
             className="border rounded-lg px-3 py-2"
             placeholder="Address"
           />
-
           <input
             name="family"
             value={form.family}
@@ -116,7 +138,6 @@ export default function Members() {
             className="border rounded-lg px-3 py-2"
             placeholder="Family"
           />
-
           <button
             type="submit"
             className="bg-[#C6A44A] text-white rounded-lg px-4 py-2 hover:bg-[#B8961E]"
@@ -126,47 +147,81 @@ export default function Members() {
         </form>
       </Card>
 
+      {/* SEARCH */}
+      <div className="mb-6 flex justify-between items-center">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search members..."
+          className="w-full md:w-1/3 border rounded-xl px-4 py-2"
+        />
+        <span className="text-sm text-gray-500 ml-4">
+          {filteredMembers.length} members
+        </span>
+      </div>
+
       {/* LIST */}
       {loading ? (
         <p>Loading members...</p>
       ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          {members.map(m => (
-            <Card key={m.id}>
-              <h3 className="text-lg font-semibold">{m.name}</h3>
-              <p className="text-sm text-gray-500">{m.contact}</p>
-              <p className="text-sm text-gray-400">{m.address}</p>
+        <>
+          <div className="grid md:grid-cols-3 gap-6">
+            {paginatedMembers.map(m => (
+              <Card key={m.id}>
+                <h3 className="text-lg font-semibold">{m.name}</h3>
+                <p className="text-sm text-gray-500">{m.contact}</p>
+                <p className="text-sm text-gray-400">{m.address}</p>
 
-              <span
-                className={`
-                  inline-block mt-3 px-3 py-1 text-xs rounded-full
-                  ${
-                    m.status === "active"
-                      ? "bg-[#FAF6E8] text-[#9C7F2E]"
-                      : "bg-gray-200 text-gray-600"
-                  }
-                `}
-              >
-                {m.status}
-              </span>
+                <span
+                  className={`
+                    inline-block mt-3 px-3 py-1 text-xs rounded-full
+                    ${
+                      m.status === "active"
+                        ? "bg-[#FAF6E8] text-[#9C7F2E]"
+                        : "bg-gray-200 text-gray-600"
+                    }
+                  `}
+                >
+                  {m.status}
+                </span>
 
-              <div className="flex gap-4 mt-6 text-sm">
+                <div className="flex gap-4 mt-6 text-sm">
+                  <button
+                    onClick={() => handleEdit(m)}
+                    className="text-[#C6A44A] hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(m.id)}
+                    className="text-red-500 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-10">
+              {Array.from({ length: totalPages }).map((_, i) => (
                 <button
-                  onClick={() => handleEdit(m)}
-                  className="text-[#C6A44A] hover:underline"
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`px-4 py-2 rounded-lg text-sm ${
+                    page === i + 1
+                      ? "bg-[#C6A44A] text-white"
+                      : "bg-white border hover:bg-[#FAF6E8]"
+                  }`}
                 >
-                  Edit
+                  {i + 1}
                 </button>
-                <button
-                  onClick={() => handleDelete(m.id)}
-                  className="text-red-500 hover:underline"
-                >
-                  Remove
-                </button>
-              </div>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </Page>
   );

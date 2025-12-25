@@ -1,28 +1,37 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
-import { getDistricts, createDistrict } from "../services/districts";
+import {
+  getDistricts,
+  createDistrict,
+  updateDistrict,
+  deleteDistrict,
+} from "../services/districts";
 import { Page, Card, PrimaryButton, Input } from "../components/ui";
 
 export default function Districts() {
   const [districts, setDistricts] = useState<any[]>([]);
-  const [name, setName] = useState("");
-  const [leader, setLeader] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ name: "", leader_name: "" });
 
-  const loadDistricts = async () => {
-    const data = await getDistricts();
-    setDistricts(data);
+  const load = async () => setDistricts(await getDistricts());
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async (id?: number) => {
+    if (id) {
+      await updateDistrict(id, form);
+      setEditingId(null);
+    } else {
+      await createDistrict(form);
+    }
+    setForm({ name: "", leader_name: "" });
+    load();
   };
 
-  useEffect(() => {
-    loadDistricts();
-  }, []);
-
-  const handleCreate = async () => {
-    if (!name) return;
-    await createDistrict({ name, leader_name: leader });
-    setName("");
-    setLeader("");
-    loadDistricts();
+  const handleDelete = async (id: number) => {
+    if (confirm("Delete this district?")) {
+      await deleteDistrict(id);
+      load();
+    }
   };
 
   return (
@@ -31,15 +40,15 @@ export default function Districts() {
         <div className="grid md:grid-cols-3 gap-4">
           <Input
             placeholder="District name"
-            value={name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            value={form.name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
           />
           <Input
             placeholder="Leader name"
-            value={leader}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setLeader(e.target.value)}
+            value={form.leader_name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, leader_name: e.target.value })}
           />
-          <PrimaryButton onClick={handleCreate}>
+          <PrimaryButton onClick={() => handleSave()}>
             Add District
           </PrimaryButton>
         </div>
@@ -48,13 +57,48 @@ export default function Districts() {
       <div className="grid md:grid-cols-3 gap-6">
         {districts.map(d => (
           <Card key={d.id}>
-            <h3 className="text-lg font-semibold">{d.name}</h3>
-            <p className="text-sm text-gray-500">
-              Leader: {d.leader_name || "—"}
-            </p>
-            <p className="mt-3 text-[#C6A44A] font-medium">
-              {d.member_count} Members
-            </p>
+            {editingId === d.id ? (
+              <>
+                <Input
+                  value={form.name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                />
+                <Input
+                  value={form.leader_name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, leader_name: e.target.value })
+                  }
+                />
+                <PrimaryButton onClick={() => handleSave(d.id)}>
+                  Save
+                </PrimaryButton>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold">{d.name}</h3>
+                <p className="text-sm text-gray-500">
+                  Leader: {d.leader_name || "—"}
+                </p>
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => {
+                      setEditingId(d.id);
+                      setForm({ name: d.name, leader_name: d.leader_name || "" });
+                    }}
+                    className="text-[#C6A44A] font-medium"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(d.id)}
+                    className="text-red-500 font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
           </Card>
         ))}
       </div>

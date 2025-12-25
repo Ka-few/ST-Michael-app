@@ -13,3 +13,15 @@ export const createAnnouncement = async (data: {
   const res = await api.post("/announcements/", data);
   return res.data;
 };
+
+export const updateAnnouncement = async (
+  id: number,
+  data: { title: string; message: string; category?: string }
+) => {
+  const res = await api.put(`/announcements/${id}`, data);
+  return res.data;
+};
+
+export const deleteAnnouncement = async (id: number) => {
+  await api.delete(`/announcements/${id}`);
+};
