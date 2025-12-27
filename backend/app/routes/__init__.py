@@ -5,6 +5,7 @@ from .events import events_bp
 from .districts import districts_bp
 from .donations import donations_bp
 from .announcement import announcements_bp
+from .auth import auth_bp
 
 def register_routes(app):
     app.register_blueprint(members_bp)
@@ -13,5 +14,6 @@ def register_routes(app):
     app.register_blueprint(events_bp)
     app.register_blueprint(districts_bp)
     app.register_blueprint(announcements_bp)
+    app.register_blueprint(auth_bp)
    
     app.register_blueprint(donations_bp)

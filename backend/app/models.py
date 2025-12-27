@@ -9,6 +9,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(50), default='staff')  # 'admin' or 'staff'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sacraments = db.relationship("Sacrament", backref="user", lazy=True)
 
 # ---------- Members / Parishioners ----------
 class Member(db.Model):
@@ -30,6 +31,7 @@ class Sacrament(db.Model):
     date = db.Column(db.Date)
     certificate_path = db.Column(db.String(250))  # optional
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     member = db.relationship('Member', backref=db.backref('sacraments', lazy=True))
 
