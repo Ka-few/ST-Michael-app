@@ -10,13 +10,17 @@ export const Page = ({ title, children }: any) => (
   </div>
 );
 
-export const Card = ({ children }: any) => (
-  <div className="
-    bg-white rounded-2xl p-6
-    border border-[#EFE7C9]
-    shadow-sm hover:shadow-xl
-    transition-all
-  ">
+export const Card = ({ children, ...props }: any) => (
+  <div
+    {...props} // <-- forwards onClick, className overrides, etc.
+    className={`
+      bg-white rounded-2xl p-6
+      border border-[#EFE7C9]
+      shadow-sm hover:shadow-xl
+      transition-all
+      ${props.className || ""}
+    `}
+  >
     {children}
   </div>
 );

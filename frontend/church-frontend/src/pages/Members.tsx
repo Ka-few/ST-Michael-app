@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../api/api";
 import type { Member } from "../type/models";
 import { Page, Card } from "../components/ui";
+import MemberDrawer from "../components/MemberDrawer";
 
 const PAGE_SIZE = 6;
 
 export default function Members() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+
   const [form, setForm] = useState({
     name: "",
     contact: "",
@@ -14,10 +17,10 @@ export default function Members() {
     family: "",
     status: "active",
   });
+
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔍 Search & pagination state
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -54,7 +57,7 @@ export default function Members() {
   }, [filteredMembers, page]);
 
   useEffect(() => {
-    setPage(1); // reset page on search
+    setPage(1);
   }, [search]);
 
   // ================= FORM =================
@@ -167,7 +170,11 @@ export default function Members() {
         <>
           <div className="grid md:grid-cols-3 gap-6">
             {paginatedMembers.map(m => (
-              <Card key={m.id}>
+              <Card
+                key={m.id}
+                onClick={() => setSelectedMember(m)}
+                className="cursor-pointer hover:shadow-xl transition"
+              >
                 <h3 className="text-lg font-semibold">{m.name}</h3>
                 <p className="text-sm text-gray-500">{m.contact}</p>
                 <p className="text-sm text-gray-400">{m.address}</p>
@@ -184,21 +191,6 @@ export default function Members() {
                 >
                   {m.status}
                 </span>
-
-                <div className="flex gap-4 mt-6 text-sm">
-                  <button
-                    onClick={() => handleEdit(m)}
-                    className="text-[#C6A44A] hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(m.id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Remove
-                  </button>
-                </div>
               </Card>
             ))}
           </div>
@@ -223,6 +215,20 @@ export default function Members() {
           )}
         </>
       )}
+
+      {/* ✅ SINGLE DRAWER (VERY IMPORTANT) */}
+      <MemberDrawer
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
+        onEdit={(m) => {
+          handleEdit(m);
+          setSelectedMember(null);
+        }}
+        onDelete={(id) => {
+          handleDelete(id);
+          setSelectedMember(null);
+        }}
+      />
     </Page>
   );
 }

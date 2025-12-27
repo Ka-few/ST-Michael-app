@@ -2,9 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* stylelint-disable at-rule-no-unknown */
+/* Global base styles */
 body {
-  @apply bg-[#FAFAF8] text-slate-800 antialiased;
+  background-color: #fafaf8;
+  color: #1e293b;
   font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-/* stylelint-enable at-rule-no-unknown */
+
+/* Animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
