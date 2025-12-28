@@ -1,51 +1,92 @@
-import { NavLink } from "react-router-dom";
-
-const navItems = [
-  { name: "Home", path: "/" },
-  { name: "Members", path: "/members" },
-  { name: "Districts", path: "/districts" },
-  { name: "Events", path: "/events" },
-  { name: "Sacraments", path: "/sacraments" },
-  { name: "Donations", path: "/donations" },
-];
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
-      {/* Top Bar */}
-      <header className="bg-white border-b border-[#EFE7C9] shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-[#1F2937]">
-              St. Michael Parish
-            </h1>
-            <p className="text-xs text-[#C6A44A] tracking-wide">
-              Parish Management System
-            </p>
-          </div>
+    <>
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-[#EFE7C9]">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* Logo */}
+          <Link to="/" className="text-xl font-semibold tracking-tight">
+            St. Michael Church
+          </Link>
 
-          <nav className="flex gap-6">
-            {navItems.map(item => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `text-sm font-medium transition ${
-                    isActive
-                      ? "text-[#C6A44A]"
-                      : "text-gray-600 hover:text-[#C6A44A]"
-                  }`
-                }
+          {/* Links */}
+          <div className="flex items-center gap-6 text-sm font-medium">
+            <Link to="/" className="hover:text-[#C6A44A]">
+              Announcements
+            </Link>
+
+            {user && (
+              <>
+                <Link to="/events" className="hover:text-[#C6A44A]">
+                  Events
+                </Link>
+                <Link to="/sacraments" className="hover:text-[#C6A44A]">
+                  Sacraments
+                </Link>
+                <Link to="/donations" className="hover:text-[#C6A44A]">
+                  Donations
+                </Link>
+              </>
+            )}
+
+            {/* Admin-only */}
+            {user?.role === "admin" && (
+              <>
+                <Link to="/members" className="hover:text-[#C6A44A]">
+                  Members
+                </Link>
+                <Link to="/districts" className="hover:text-[#C6A44A]">
+                  Districts
+                </Link>
+              </>
+            )}
+
+            {/* Show user role badge */}
+            {user && user.role && (
+              <span className="px-3 py-1 text-xs rounded-full bg-[#FAF6E8] text-[#C6A44A] font-medium">
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </span>
+            )}
+
+            {/* Auth */}
+            {!user ? (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 rounded-full border hover:bg-[#FAF6E8]"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 rounded-full bg-[#C6A44A] text-white"
+                >
+                  Register
+                </Link>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  logout();
+                  navigate("/login");
+                }}
+                className="px-4 py-2 rounded-full border text-red-500 hover:bg-red-50"
               >
-                {item.name}
-              </NavLink>
-            ))}
-          </nav>
+                Logout
+              </button>
+            )}
+          </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Page Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
-    </div>
+      {/* PAGE CONTENT */}
+      <main>{children}</main>
+    </>
   );
 }

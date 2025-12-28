@@ -16,7 +16,7 @@ export default function Login() {
     e.preventDefault();
     try {
       const res = await login(email, password);
-      loginUser(res.access_token, res.user);
+      loginUser(res.access_token, res.user as any);
 
       // 🔀 Role-based redirect
       if (res.user.role === "admin") {
