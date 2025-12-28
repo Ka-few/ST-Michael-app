@@ -11,6 +11,7 @@ from app.models import (
 )
 from datetime import date
 import random
+from werkzeug.security import generate_password_hash
 
 app = create_app()
 
@@ -22,14 +23,14 @@ with app.app_context():
     admin = User(
         name="Admin User",
         email="admin@church.com",
-        password_hash="admin123",
+        password_hash=generate_password_hash("admin123"),  # ✅ FIXED: Now hashed
         role="admin"
     )
 
     staff = User(
         name="Staff User",
         email="staff@church.com",
-        password_hash="staff123",
+        password_hash=generate_password_hash("staff123"),  # ✅ FIXED: Now hashed
         role="staff"
     )
 
@@ -133,3 +134,6 @@ with app.app_context():
     db.session.commit()
 
     print("✅ Database seeded successfully with districts & announcements!")
+    print("\n📝 Test credentials:")
+    print("   Admin - email: admin@church.com, password: admin123")
+    print("   Staff - email: staff@church.com, password: staff123")

@@ -31,7 +31,7 @@ class Sacrament(db.Model):
     date = db.Column(db.Date)
     certificate_path = db.Column(db.String(250))  # optional
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
     member = db.relationship('Member', backref=db.backref('sacraments', lazy=True))
 

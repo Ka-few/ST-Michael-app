@@ -9,7 +9,16 @@ db = SQLAlchemy()
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     
-    CORS(app)
+    app.url_map.strict_slashes = False
+    
+    # Enable CORS
+    CORS(app, resources={
+        r"/*": {
+            "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+        })
 
     # Ensure instance folder exists
     os.makedirs(app.instance_path, exist_ok=True)
