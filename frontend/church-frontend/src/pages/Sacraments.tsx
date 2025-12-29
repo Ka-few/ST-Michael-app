@@ -6,7 +6,7 @@ interface Sacrament {
   id: number;
   user_id?: number;
   type: string;
-  date_received: string | null;
+  date: string | null;
   notes?: string;
 }
 
@@ -19,7 +19,7 @@ export default function Sacraments() {
   const [form, setForm] = useState({ 
     user_id: '', 
     type: '', 
-    date_received: '',
+    date: '',
     notes: '' 
   });
   const [editId, setEditId] = useState<number | null>(null);
@@ -53,7 +53,7 @@ export default function Sacraments() {
     // Admin can create for any user, members create for themselves
     const payload = user?.role === 'admin' 
       ? { ...form, user_id: Number(form.user_id) }
-      : { type: form.type, date_received: form.date_received, notes: form.notes };
+      : { type: form.type, date: form.date, notes: form.notes };
     
     if (editId) {
       // Update sacrament
@@ -61,7 +61,7 @@ export default function Sacraments() {
       api.put(endpoint, payload)
         .then(() => {
           fetchSacraments();
-          setForm({ user_id: '', type: '', date_received: '', notes: '' });
+          setForm({ user_id: '', type: '', date: '', notes: '' });
           setEditId(null);
         })
         .catch(err => setError(err.response?.data?.error || 'Failed to update'));
@@ -71,7 +71,7 @@ export default function Sacraments() {
       api.post(endpoint, payload)
         .then(() => {
           fetchSacraments();
-          setForm({ user_id: '', type: '', date_received: '', notes: '' });
+          setForm({ user_id: '', type: '', date: '', notes: '' });
         })
         .catch(err => setError(err.response?.data?.error || 'Failed to create'));
     }
@@ -81,7 +81,7 @@ export default function Sacraments() {
     setForm({ 
       user_id: String(s.user_id || ''), 
       type: s.type, 
-      date_received: s.date_received || '',
+      date: s.date || '',
       notes: s.notes || ''
     });
     setEditId(s.id);
@@ -151,9 +151,9 @@ export default function Sacraments() {
           <div>
             <label className="block text-sm font-medium mb-1">Date Received</label>
             <input
-              name="date_received"
+              name="date"
               type="date"
-              value={form.date_received}
+              value={form.date}
               onChange={handleChange}
               className="w-full border rounded-lg px-3 py-2"
             />
@@ -203,9 +203,9 @@ export default function Sacraments() {
                 <p className="font-semibold text-lg text-[#C9A227]">
                   {s.type}
                 </p>
-                {s.date_received && (
+                {s.date && (
                   <p className="text-sm text-gray-600 mt-1">
-                    {new Date(s.date_received).toLocaleDateString()}
+                    {new Date(s.date).toLocaleDateString()}
                   </p>
                 )}
                 {s.notes && (
