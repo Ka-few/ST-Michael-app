@@ -5,7 +5,7 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity
 )
-from app.models import db, User
+from app.models import db, User, Member
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -13,10 +13,11 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
-    
+
     name = data.get("name")
     email = data.get("email")
     password = data.get("password")
+    contact = data.get("contact")  # optional
 
     if not name or not email or not password:
         return jsonify({"error": "Name, email and password required"}), 400
@@ -24,17 +25,32 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 409
 
+    # 1️⃣ Create User
     user = User(
-        name=name,  # ADD THIS LINE
+        name=name,
         email=email,
         password_hash=generate_password_hash(password),
-        role="member"  # ADD DEFAULT ROLE
+        role="member"
     )
+
     db.session.add(user)
+    db.session.flush()  # 🔑 get user.id without committing
+
+    # 2️⃣ Create linked Member profile
+    member = Member(
+        name=name,
+        contact=contact,
+        user_id=user.id
+    )
+
+    db.session.add(member)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
-
+    return jsonify({
+        "message": "User registered successfully",
+        "user_id": user.id,
+        "member_id": member.id
+    }), 201
 
 # ---------------- LOGIN ----------------
 @auth_bp.route("/login", methods=["POST"])
@@ -55,12 +71,12 @@ def login():
         additional_claims["role"] = user.role
     
     token = create_access_token(
-        identity=user.id,
+        identity=str(user.id),
         additional_claims=additional_claims
     )
 
     return jsonify({
-        "token": token,
+        "access_token": token,
         "user": {
             "id": user.id,
             "name": user.name,

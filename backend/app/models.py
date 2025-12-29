@@ -10,6 +10,7 @@ class User(db.Model):
     role = db.Column(db.String(50), default='staff')  # 'admin' or 'staff'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     sacraments = db.relationship("Sacrament", backref="user", lazy=True)
+    member = db.relationship("Member", backref="user", uselist=False)
 
 # ---------- Members / Parishioners ----------
 class Member(db.Model):
@@ -21,6 +22,12 @@ class Member(db.Model):
     status = db.Column(db.String(50), default='active')  # active/inactive
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     district_id = db.Column(db.Integer, db.ForeignKey('district.id'))
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        unique=True,
+        nullable=True
+    )
 
 
 # ---------- Sacraments ----------
