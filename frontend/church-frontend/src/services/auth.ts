@@ -34,13 +34,16 @@ export const login = async (email: string, password: string) => {
 export const register = async (
   name: string,
   email: string,
-  password: string
+  password: string,
+  claimCode: string
 ) => {
   try {
     const payload = {
       name,
       email,
       password,
+      claim_code: claimCode,
+
     };
     
     const res = await api.post("/auth/register", payload);

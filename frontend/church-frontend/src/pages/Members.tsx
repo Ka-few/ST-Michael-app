@@ -24,12 +24,15 @@ export default function Members() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  // NEW STATE for claim code
+  const [newClaimCode, setNewClaimCode] = useState<string | null>(null);
+
   // ================= FETCH =================
   const fetchMembers = () => {
     setLoading(true);
     api
       .get("/members/")
-      .then(res => setMembers(res.data))
+      .then((res) => setMembers(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -41,10 +44,11 @@ export default function Members() {
   // ================= FILTER =================
   const filteredMembers = useMemo(() => {
     const q = search.toLowerCase();
-    return members.filter(m =>
-      m.name.toLowerCase().includes(q) ||
-      m.contact.toLowerCase().includes(q) ||
-      (m.family || "").toLowerCase().includes(q)
+    return members.filter(
+      (m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.contact.toLowerCase().includes(q) ||
+        (m.family || "").toLowerCase().includes(q)
     );
   }, [members, search]);
 
@@ -74,17 +78,26 @@ export default function Members() {
       ? api.put(`/members/${editId}`, form)
       : api.post("/members/", form);
 
-    action.then(() => {
-      fetchMembers();
-      setForm({
-        name: "",
-        contact: "",
-        address: "",
-        family: "",
-        status: "active",
-      });
-      setEditId(null);
-    });
+    action
+      .then((res) => {
+        fetchMembers();
+        setForm({
+          name: "",
+          contact: "",
+          address: "",
+          family: "",
+          status: "active",
+        });
+        setEditId(null);
+
+        // ✅ Capture claim code from backend
+        if (res.data.claim_code) {
+          setNewClaimCode(res.data.claim_code);
+        } else {
+          setNewClaimCode(null);
+        }
+      })
+      .catch(console.error);
   };
 
   // ================= ACTIONS =================
@@ -109,7 +122,7 @@ export default function Members() {
   return (
     <Page title="Parish Members">
       {/* FORM */}
-      <Card className="mb-8">
+      <Card className="mb-4">
         <form onSubmit={handleSubmit} className="grid md:grid-cols-5 gap-4">
           <input
             name="name"
@@ -150,11 +163,30 @@ export default function Members() {
         </form>
       </Card>
 
+      {/* CLAIM CODE NOTIFICATION */}
+      {newClaimCode && (
+        <Card className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <p className="font-semibold mb-2">Member created successfully!</p>
+          <p>
+            Claim code: <strong>{newClaimCode}</strong>
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Share this code with the member. It will be used to link their account.
+          </p>
+          <button
+            onClick={() => setNewClaimCode(null)}
+            className="mt-2 px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+          >
+            Close
+          </button>
+        </Card>
+      )}
+
       {/* SEARCH */}
       <div className="mb-6 flex justify-between items-center">
         <input
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search members..."
           className="w-full md:w-1/3 border rounded-xl px-4 py-2"
         />
@@ -169,7 +201,7 @@ export default function Members() {
       ) : (
         <>
           <div className="grid md:grid-cols-3 gap-6">
-            {paginatedMembers.map(m => (
+            {paginatedMembers.map((m) => (
               <Card
                 key={m.id}
                 onClick={() => setSelectedMember(m)}
@@ -216,7 +248,7 @@ export default function Members() {
         </>
       )}
 
-      {/* ✅ SINGLE DRAWER (VERY IMPORTANT) */}
+      {/* SINGLE MEMBER DRAWER */}
       <MemberDrawer
         member={selectedMember}
         onClose={() => setSelectedMember(null)}

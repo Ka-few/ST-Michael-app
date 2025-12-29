@@ -10,12 +10,23 @@ export default function Register() {
     name: "",
     email: "",
     password: "",
+    claimCode: "", // <-- new field
   });
+
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await register(form.name, form.email, form.password);
-    navigate("/login");
+    setError(null);
+
+    try {
+      // Pass claimCode to the register service
+      await register(form.name, form.email, form.password, form.claimCode);
+      navigate("/login");
+    } catch (err: any) {
+      // Display backend error
+      setError(err.response?.data?.error || "Registration failed");
+    }
   };
 
   return (
@@ -25,22 +36,38 @@ export default function Register() {
           <Input
             placeholder="Full Name"
             value={form.name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setForm({ ...form, name: e.target.value })
+            }
             required
           />
           <Input
             placeholder="Email"
             value={form.email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setForm({ ...form, email: e.target.value })
+            }
             required
           />
           <Input
             type="password"
             placeholder="Password"
             value={form.password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setForm({ ...form, password: e.target.value })
+            }
             required
           />
+          <Input
+            placeholder="Claim Code"
+            value={form.claimCode}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setForm({ ...form, claimCode: e.target.value })
+            }
+            required
+          />
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <PrimaryButton type="submit" className="w-full">
             Register
