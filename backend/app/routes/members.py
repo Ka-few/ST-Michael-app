@@ -1,5 +1,10 @@
+import secrets
 from flask import Blueprint, request, jsonify
-from app.models import db, Member
+from app.extensions import db
+from app.models import Member
+from app.utils.roles import admin_required
+from datetime import datetime, timedelta
+
 
 members_bp = Blueprint('members', __name__, url_prefix='/members')
 
@@ -31,18 +36,30 @@ def get_member(id):
 
 # Create member
 @members_bp.route('/', methods=['POST'])
+@admin_required()
 def create_member():
     data = request.json
+
+    claim_code = secrets.token_urlsafe(12)
+
     member = Member(
         name=data.get('name'),
         contact=data.get('contact'),
         address=data.get('address'),
         family=data.get('family'),
-        status=data.get('status', 'active')
+        status=data.get('status', 'active'),
+        claim_code=claim_code,
+        claim_code_expires_at=datetime.utcnow() + timedelta(days=30)
     )
+
     db.session.add(member)
     db.session.commit()
-    return jsonify({'message': 'Member created', 'id': member.id}), 201
+
+    return jsonify({
+        'message': 'Member created',
+        'id': member.id,
+        'claim_code': claim_code  # show ONCE
+    }), 201
 
 # Update member
 @members_bp.route('/<int:id>', methods=['PUT'])

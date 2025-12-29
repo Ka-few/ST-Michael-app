@@ -5,11 +5,16 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity
 )
-from app.models import db, User, Member
+from app.extensions import db
+from app.models import User, Member
+from datetime import datetime
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
+
+
 # ---------------- REGISTER ----------------
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -17,13 +22,25 @@ def register():
     name = data.get("name")
     email = data.get("email")
     password = data.get("password")
-    contact = data.get("contact")  # optional
+    claim_code = data.get("claim_code")
 
-    if not name or not email or not password:
-        return jsonify({"error": "Name, email and password required"}), 400
+    if not name or not email or not password or not claim_code:
+        return jsonify({"error": "Name, email, password and claim code required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 409
+
+    # 🔍 Find member by claim code
+    member = Member.query.filter_by(claim_code=claim_code).first()
+
+    if not member:
+        return jsonify({"error": "Invalid claim code"}), 400
+
+    if member.user_id:
+        return jsonify({"error": "Member already linked"}), 400
+
+    if member.claim_code_expires_at and member.claim_code_expires_at < datetime.utcnow():
+        return jsonify({"error": "Claim code expired"}), 400
 
     # 1️⃣ Create User
     user = User(
@@ -34,20 +51,17 @@ def register():
     )
 
     db.session.add(user)
-    db.session.flush()  # 🔑 get user.id without committing
+    db.session.flush()  # get user.id
 
-    # 2️⃣ Create linked Member profile
-    member = Member(
-        name=name,
-        contact=contact,
-        user_id=user.id
-    )
+    # 2️⃣ Link member
+    member.user_id = user.id
+    member.claim_code = None
+    member.claim_code_expires_at = None
 
-    db.session.add(member)
     db.session.commit()
 
     return jsonify({
-        "message": "User registered successfully",
+        "message": "Registration successful",
         "user_id": user.id,
         "member_id": member.id
     }), 201
@@ -65,14 +79,10 @@ def login():
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    # Create access token with optional role claim
-    additional_claims = {}
-    if hasattr(user, 'role'):
-        additional_claims["role"] = user.role
-    
+    # Create access token with user ID as STRING
     token = create_access_token(
         identity=str(user.id),
-        additional_claims=additional_claims
+        additional_claims={"role": user.role}
     )
 
     return jsonify({
@@ -90,10 +100,13 @@ def login():
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
 def me():
-    user_id = get_jwt_identity()
+    user_id_str = get_jwt_identity()
+    user_id = int(user_id_str)  # Convert to int
     user = User.query.get_or_404(user_id)
 
     return jsonify({
         "id": user.id,
-        "email": user.email
+        "name": user.name,
+        "email": user.email,
+        "role": user.role
     }), 200

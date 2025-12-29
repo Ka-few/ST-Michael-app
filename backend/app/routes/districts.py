@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
-from app.models import db, District, Member
+from app.extensions import db
+from app.utils.roles import admin_required
+from app.models import District, Member
 
 districts_bp = Blueprint("districts", __name__, url_prefix="/districts")
 
 # ---------------- CREATE DISTRICT ----------------
 @districts_bp.route("/", methods=["POST"])
+@admin_required()
 def create_district():
     data = request.get_json()
 
@@ -18,7 +21,6 @@ def create_district():
     db.session.commit()
 
     return jsonify({"message": "District created", "id": district.id}), 201
-
 
 # ---------------- GET ALL DISTRICTS ----------------
 @districts_bp.route("/", methods=["GET"])

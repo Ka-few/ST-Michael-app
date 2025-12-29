@@ -1,11 +1,20 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from app.models import db, Announcement
+from app.extensions import db
+from app.models import Announcement
+from app.utils.roles import admin_required
 
 announcements_bp = Blueprint("announcements", __name__, url_prefix="/announcements")
 
+# OPTIONS handler
+@announcements_bp.route('/<path:path>', methods=['OPTIONS'])
+@announcements_bp.route('/', methods=['OPTIONS'], defaults={'path': ''})
+def handle_options(path):
+    return '', 204
+
 # ---------------- CREATE ANNOUNCEMENT ----------------
 @announcements_bp.route("/", methods=["POST"])
+@admin_required()  # Only admin can create
 def create_announcement():
     data = request.get_json()
 
@@ -24,7 +33,7 @@ def create_announcement():
 
 
 # ---------------- GET ALL ANNOUNCEMENTS ----------------
-@announcements_bp.route("/", methods=["GET"])
+@announcements_bp.route("/", methods=["GET"], strict_slashes=False)
 def get_announcements():
     announcements = Announcement.query.order_by(
         Announcement.publish_date.desc()
@@ -37,8 +46,8 @@ def get_announcements():
             "title": a.title,
             "message": a.message,
             "category": a.category,
-            "publish_date": a.publish_date,
-            "expiry_date": a.expiry_date
+            "publish_date": a.publish_date.isoformat() if a.publish_date else None,  # Fixed serialization
+            "expiry_date": a.expiry_date.isoformat() if a.expiry_date else None  # Fixed serialization
         })
 
     return jsonify(results), 200
@@ -54,13 +63,14 @@ def get_announcement(id):
         "title": a.title,
         "message": a.message,
         "category": a.category,
-        "publish_date": a.publish_date,
-        "expiry_date": a.expiry_date
+        "publish_date": a.publish_date.isoformat() if a.publish_date else None,
+        "expiry_date": a.expiry_date.isoformat() if a.expiry_date else None
     }), 200
 
 
 # ---------------- UPDATE ANNOUNCEMENT ----------------
 @announcements_bp.route("/<int:id>", methods=["PUT"])
+@admin_required()  # Only admin can update
 def update_announcement(id):
     announcement = Announcement.query.get_or_404(id)
     data = request.get_json()
@@ -77,6 +87,7 @@ def update_announcement(id):
 
 # ---------------- DELETE ANNOUNCEMENT ----------------
 @announcements_bp.route("/<int:id>", methods=["DELETE"])
+@admin_required()  # Only admin can delete
 def delete_announcement(id):
     announcement = Announcement.query.get_or_404(id)
 
