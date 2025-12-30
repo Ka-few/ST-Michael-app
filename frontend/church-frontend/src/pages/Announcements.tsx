@@ -7,8 +7,10 @@ import {
   deleteAnnouncement,
 } from "../services/announcements";
 import { Page, Card, PrimaryButton, Input } from "../components/ui";
+import { useAuth } from "../context/AuthContext";
 
 export default function Announcements() {
+  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ title: "", message: "" });
@@ -39,6 +41,8 @@ export default function Announcements() {
     }
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Page title="Announcements">
       {/* Page Intro */}
@@ -52,34 +56,36 @@ export default function Announcements() {
         </p>
       </div>
 
-      {/* Create Announcement */}
-      <Card className="mb-12">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Publish New Announcement
-        </h3>
+      {/* Create Announcement - Admin Only */}
+      {isAdmin && (
+        <Card className="mb-12">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Publish New Announcement
+          </h3>
 
-        <Input
-          placeholder="Announcement title"
-          value={form.title}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setForm({ ...form, title: e.target.value })
-          }
-        />
+          <Input
+            placeholder="Announcement title"
+            value={form.title}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setForm({ ...form, title: e.target.value })
+            }
+          />
 
-        <textarea
-          className="w-full rounded-xl border border-[#EFE7C9] p-4 mt-4 text-sm leading-relaxed focus:ring-2 focus:ring-[#C6A44A] outline-none"
-          rows={5}
-          placeholder="Write the announcement message..."
-          value={form.message}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-            setForm({ ...form, message: e.target.value })
-          }
-        />
+          <textarea
+            className="w-full rounded-xl border border-[#EFE7C9] p-4 mt-4 text-sm leading-relaxed focus:ring-2 focus:ring-[#C6A44A] outline-none"
+            rows={5}
+            placeholder="Write the announcement message..."
+            value={form.message}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+              setForm({ ...form, message: e.target.value })
+            }
+          />
 
-        <PrimaryButton className="mt-4" onClick={() => handleSave()}>
-          Publish Announcement
-        </PrimaryButton>
-      </Card>
+          <PrimaryButton className="mt-4" onClick={() => handleSave()}>
+            Publish Announcement
+          </PrimaryButton>
+        </Card>
+      )}
 
       {/* Announcement Feed */}
       <div className="space-y-6">
@@ -149,26 +155,28 @@ export default function Announcements() {
                       : ""}
                   </span>
 
-                  <div className="flex gap-4">
-                    <button
-                      className="text-sm font-medium text-[#C6A44A]"
-                      onClick={() => {
-                        setEditingId(a.id);
-                        setForm({
-                          title: a.title,
-                          message: a.message,
-                        });
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="text-sm font-medium text-red-500"
-                      onClick={() => handleDelete(a.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-4">
+                      <button
+                        className="text-sm font-medium text-[#C6A44A]"
+                        onClick={() => {
+                          setEditingId(a.id);
+                          setForm({
+                            title: a.title,
+                            message: a.message,
+                          });
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-sm font-medium text-red-500"
+                        onClick={() => handleDelete(a.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             )}

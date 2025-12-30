@@ -59,12 +59,11 @@ export default function Register() {
             required
           />
           <Input
-            placeholder="Claim Code"
+            placeholder="Claim Code (Optional)"
             value={form.claimCode}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setForm({ ...form, claimCode: e.target.value })
             }
-            required
           />
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

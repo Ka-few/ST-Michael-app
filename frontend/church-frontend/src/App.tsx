@@ -7,6 +7,7 @@ import Sacraments from "./pages/Sacraments";
 import Districts from "./pages/Districts";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import LinkProfile from "./pages/LinkProfile";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
@@ -54,6 +55,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Sacraments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/link-profile"
+          element={
+            <ProtectedRoute>
+              <LinkProfile />
             </ProtectedRoute>
           }
         />

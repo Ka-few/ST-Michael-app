@@ -1,11 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import api from "../api/api";
+// src/context/AuthContext.tsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 interface User {
   id: number;
   name: string;
   email: string;
   role: "admin" | "member" | "staff";
+  member_id?: number | null;
 }
 
 interface AuthContextType {
@@ -15,47 +17,68 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize auth from localStorage on mount
   useEffect(() => {
+    console.log('🔍 Checking for existing auth...');
+
     const stored = localStorage.getItem("auth");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         setUser(parsed.user);
         setToken(parsed.token);
-        // Set token in axios default headers
-        api.defaults.headers.common["Authorization"] = `Bearer ${parsed.token}`;
-        // Also store in localStorage for interceptor
-        localStorage.setItem("token", parsed.token);
+
+        // CRITICAL: Store as 'access_token' for api.ts interceptor
+        localStorage.setItem("access_token", parsed.token);
+
+        console.log('✅ Auth restored:', parsed.user.email);
+        console.log('✅ Token stored as access_token');
       } catch (error) {
-        console.error("Failed to parse auth data:", error);
+        console.error('❌ Failed to parse auth data:', error);
         localStorage.removeItem("auth");
-        localStorage.removeItem("token");
+        localStorage.removeItem("access_token");
       }
+    } else {
+      console.log('⚠️ No stored auth found');
     }
+
     setLoading(false);
   }, []);
 
-  const loginUser = (token: string, user: User) => {
-    setToken(token);
-    setUser(user);
-    localStorage.setItem("auth", JSON.stringify({ token, user }));
-    localStorage.setItem("token", token);
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  const loginUser = (newToken: string, newUser: User) => {
+    console.log('🔐 Logging in user:', newUser.email);
+
+    setToken(newToken);
+    setUser(newUser);
+
+    // Store in auth object (your existing pattern)
+    localStorage.setItem("auth", JSON.stringify({ token: newToken, user: newUser }));
+
+    // CRITICAL: Also store as 'access_token' for api.ts interceptor
+    localStorage.setItem("access_token", newToken);
+
+    // Verify storage
+    const verify = localStorage.getItem('access_token');
+    console.log('✅ Token stored:', !!verify);
+    console.log('✅ Token preview:', verify?.substring(0, 20) + '...');
   };
 
   const logout = () => {
-    setUser(null);
+    console.log('👋 Logging out user');
+
     setToken(null);
+    setUser(null);
+
     localStorage.removeItem("auth");
-    localStorage.removeItem("token");
-    delete api.defaults.headers.common["Authorization"];
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("token"); // Remove old key if it exists
   };
 
   if (loading) {
@@ -70,16 +93,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loginUser,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

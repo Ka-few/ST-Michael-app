@@ -54,6 +54,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </span>
             )}
 
+            {/* Link Profile Button for unlinked users */}
+            {user && !user.member_id && user.role !== 'admin' && (
+              <Link
+                to="/link-profile"
+                className="px-3 py-1 text-xs rounded-full border border-[#C6A44A] text-[#C6A44A] hover:bg-[#FAF6E8]"
+              >
+                Link Profile
+              </Link>
+            )}
+
             {/* Auth */}
             {!user ? (
               <>
