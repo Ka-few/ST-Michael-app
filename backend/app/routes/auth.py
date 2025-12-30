@@ -15,6 +15,8 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 # ---------------- REGISTER ----------------
 
+# ---------------- REGISTER ----------------
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -22,25 +24,27 @@ def register():
     name = data.get("name")
     email = data.get("email")
     password = data.get("password")
-    claim_code = data.get("claim_code")
+    claim_code = data.get("claim_code")  # Optional now
 
-    if not name or not email or not password or not claim_code:
-        return jsonify({"error": "Name, email, password and claim code required"}), 400
+    if not name or not email or not password:
+        return jsonify({"error": "Name, email, and password are required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 409
 
-    # 🔍 Find member by claim code
-    member = Member.query.filter_by(claim_code=claim_code).first()
+    member = None
+    # If claim code provided, try to find and validate member
+    if claim_code:
+        member = Member.query.filter_by(claim_code=claim_code).first()
 
-    if not member:
-        return jsonify({"error": "Invalid claim code"}), 400
+        if not member:
+            return jsonify({"error": "Invalid claim code"}), 400
 
-    if member.user_id:
-        return jsonify({"error": "Member already linked"}), 400
+        if member.user_id:
+            return jsonify({"error": "Member already linked"}), 400
 
-    if member.claim_code_expires_at and member.claim_code_expires_at < datetime.utcnow():
-        return jsonify({"error": "Claim code expired"}), 400
+        if member.claim_code_expires_at and member.claim_code_expires_at < datetime.utcnow():
+            return jsonify({"error": "Claim code expired"}), 400
 
     # 1️⃣ Create User
     user = User(
@@ -53,18 +57,62 @@ def register():
     db.session.add(user)
     db.session.flush()  # get user.id
 
-    # 2️⃣ Link member
-    member.user_id = user.id
-    member.claim_code = None
-    member.claim_code_expires_at = None
+    # 2️⃣ Link member if found
+    if member:
+        member.user_id = user.id
+        member.claim_code = None
+        member.claim_code_expires_at = None
 
     db.session.commit()
 
     return jsonify({
         "message": "Registration successful",
         "user_id": user.id,
-        "member_id": member.id
+        "member_id": member.id if member else None
     }), 201
+
+# ---------------- LINK MEMBER ----------------
+@auth_bp.route("/link", methods=["POST"])
+@jwt_required()
+def link_member():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    claim_code = data.get("claim_code")
+
+    if not claim_code:
+        return jsonify({"error": "Claim code is required"}), 400
+    
+    user = User.query.get(user_id)
+    if not user:
+         return jsonify({"error": "User not found"}), 404
+         
+    # Check if user is already linked
+    if user.member:
+        return jsonify({"error": "User is already linked to a member profile"}), 400
+
+    member = Member.query.filter_by(claim_code=claim_code).first()
+
+    if not member:
+        return jsonify({"error": "Invalid claim code"}), 400
+
+    if member.user_id:
+        return jsonify({"error": "Member profile is already taken"}), 400
+
+    if member.claim_code_expires_at and member.claim_code_expires_at < datetime.utcnow():
+        return jsonify({"error": "Claim code has expired"}), 400
+
+    # Link them
+    member.user_id = user.id
+    member.claim_code = None
+    member.claim_code_expires_at = None
+    
+    db.session.commit()
+
+    return jsonify({
+        "message": "Profile linked successfully",
+        "member_id": member.id
+    }), 200
+
 
 # ---------------- LOGIN ----------------
 @auth_bp.route("/login", methods=["POST"])
@@ -91,7 +139,8 @@ def login():
             "id": user.id,
             "name": user.name,
             "email": user.email,
-            "role": user.role
+            "role": user.role,
+            "member_id": user.member.id if user.member else None
         }
     }), 200
 
@@ -108,5 +157,6 @@ def me():
         "id": user.id,
         "name": user.name,
         "email": user.email,
-        "role": user.role
+        "role": user.role,
+        "member_id": user.member.id if user.member else None
     }), 200

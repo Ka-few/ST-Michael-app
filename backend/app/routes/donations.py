@@ -110,19 +110,12 @@ def get_my_donations():
     user_id_str = get_jwt_identity()
     user_id = int(user_id_str)
     
-    # Find the member associated with this user
-    # Assuming Member model has a user_id or email field to link to User
     user = User.query.get(user_id)
-    if not user:
+    if not user or not user.member:
         return jsonify([]), 200
     
-    # Try to find member by email or other linking field
-    member = Member.query.filter_by(email=user.email).first() if hasattr(Member, 'email') else None
-    
-    if not member:
-        return jsonify([]), 200
-    
-    donations = Donation.query.filter_by(member_id=member.id).all()
+    # Filter by member_id to get historical data
+    donations = Donation.query.filter_by(member_id=user.member.id).order_by(Donation.date.desc()).all()
     
     return jsonify([{
         'id': d.id,
@@ -148,10 +141,10 @@ def create_donation():
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
-    member = Member.query.filter_by(email=user.email).first() if hasattr(Member, 'email') else None
+    if not user.member:
+        return jsonify({'error': 'No member profile linked to this user'}), 400
     
-    if not member:
-        return jsonify({'error': 'No member profile found for this user'}), 404
+    member = user.member
     
     # Parse date if provided
     donation_date = None
@@ -189,10 +182,10 @@ def delete_donation(id):
     user_id = int(user_id_str)
     
     user = User.query.get(user_id)
-    member = Member.query.filter_by(email=user.email).first() if user and hasattr(Member, 'email') else None
-    
-    if not member:
+    if not user or not user.member:
         return jsonify({'error': 'Member profile not found'}), 404
+    
+    member = user.member
     
     donation = Donation.query.filter_by(id=id, member_id=member.id).first_or_404()
     db.session.delete(donation)

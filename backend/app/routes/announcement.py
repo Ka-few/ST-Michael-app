@@ -7,10 +7,7 @@ from app.utils.roles import admin_required
 announcements_bp = Blueprint("announcements", __name__, url_prefix="/announcements")
 
 # OPTIONS handler
-@announcements_bp.route('/<path:path>', methods=['OPTIONS'])
-@announcements_bp.route('/', methods=['OPTIONS'], defaults={'path': ''})
-def handle_options(path):
-    return '', 204
+
 
 # ---------------- CREATE ANNOUNCEMENT ----------------
 @announcements_bp.route("/", methods=["POST"])

@@ -7,15 +7,10 @@ from app.utils.roles import admin_required
 
 sacraments_bp = Blueprint('sacraments', __name__, url_prefix='/sacraments')
 
-# -------------------- ADMIN OPTIONS HANDLER --------------------
-# Catch-all for admin preflight requests
-@sacraments_bp.route("/admin/<path:path>", methods=["OPTIONS"])
-def admin_options(path):
-    return "", 204
 
 # ============== ADMIN ROUTES ==============
 
-@sacraments_bp.route("/admin/all", methods=["GET"])
+@sacraments_bp.route("/admin/all", methods=["GET"], strict_slashes=False)
 @admin_required()
 def get_all_sacraments():
     try:
@@ -35,9 +30,10 @@ def get_all_sacraments():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-@sacraments_bp.route("/admin/add", methods=["POST"])
+@sacraments_bp.route("/admin/add", methods=["POST"], strict_slashes=False)
 @admin_required()
 def admin_create_sacrament():
+    print("DEBUG: admin_create_sacrament called") # Debug print
     data = request.get_json()
     user_id = data.get("user_id")
     sacrament_type = data.get("type")
@@ -49,10 +45,18 @@ def admin_create_sacrament():
 
     user = User.query.get(user_id)
     if not user:
+        print(f"DEBUG: User {user_id} not found")
         return jsonify({"error": "User not found"}), 404
 
     if not user.member:
-        return jsonify({"error": "This user has no linked member profile"}), 400
+        print(f"DEBUG: User {user_id} has no member")
+        return jsonify({"error": "This user has no linked member profile"}), 404
+
+    if sacrament_date:
+        try:
+            sacrament_date = datetime.fromisoformat(sacrament_date).date()
+        except ValueError:
+             return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
     sacrament = Sacrament(
         user_id=user.id,
@@ -77,7 +81,7 @@ def admin_create_sacrament():
         }
     }), 201
 
-@sacraments_bp.route("/admin/<int:id>", methods=["DELETE"])
+@sacraments_bp.route("/admin/<int:id>", methods=["DELETE"], strict_slashes=False)
 @admin_required()
 def admin_delete_sacrament(id):
     sacrament = Sacrament.query.get_or_404(id)
@@ -87,11 +91,18 @@ def admin_delete_sacrament(id):
 
 # ============== USER ROUTES ==============
 
-@sacraments_bp.route("/", methods=["GET"])
+@sacraments_bp.route("/", methods=["GET"], strict_slashes=False)
 @jwt_required()
 def get_my_sacraments():
     user_id = int(get_jwt_identity())
-    sacraments = Sacrament.query.filter_by(user_id=user_id).all()
+    user = User.query.get(user_id)
+    
+    if not user or not user.member:
+        return jsonify([]), 200
+
+    # Filter by member_id to get all history for this member
+    sacraments = Sacrament.query.filter_by(member_id=user.member.id).all()
+    
     return jsonify([
         {
             "id": s.id,
@@ -101,59 +112,3 @@ def get_my_sacraments():
         } for s in sacraments
     ]), 200
 
-@sacraments_bp.route("/", methods=["POST"])
-@jwt_required()
-def create_sacrament():
-    user_id = int(get_jwt_identity())
-    data = request.get_json()
-
-    if not data.get("type"):
-        return jsonify({"error": "type is required"}), 400
-
-    user = User.query.get(user_id)
-    if not user.member:
-        return jsonify({"error": "Current user has no linked member profile"}), 400
-
-    sacrament = Sacrament(
-        user_id=user.id,
-        member_id=user.member.id,
-        type=data.get("type"),
-        date=data.get("date"),
-        certificate_path=data.get("certificate_path")
-    )
-
-    db.session.add(sacrament)
-    db.session.commit()
-
-    return jsonify({
-        "message": "Sacrament added",
-        "sacrament": {
-            "id": sacrament.id,
-            "type": sacrament.type,
-            "date": sacrament.date.isoformat() if sacrament.date else None,
-            "certificate_path": sacrament.certificate_path
-        }
-    }), 201
-
-@sacraments_bp.route("/<int:id>", methods=["PUT"])
-@jwt_required()
-def update_sacrament(id):
-    user_id = int(get_jwt_identity())
-    sacrament = Sacrament.query.filter_by(id=id, user_id=user_id).first_or_404()
-    data = request.get_json()
-
-    sacrament.type = data.get("type", sacrament.type)
-    sacrament.date = data.get("date", sacrament.date)
-    sacrament.certificate_path = data.get("certificate_path", sacrament.certificate_path)
-
-    db.session.commit()
-    return jsonify({"message": "Sacrament updated"}), 200
-
-@sacraments_bp.route("/<int:id>", methods=["DELETE"])
-@jwt_required()
-def delete_sacrament(id):
-    user_id = int(get_jwt_identity())
-    sacrament = Sacrament.query.filter_by(id=id, user_id=user_id).first_or_404()
-    db.session.delete(sacrament)
-    db.session.commit()
-    return jsonify({"message": "Sacrament deleted"}), 200
