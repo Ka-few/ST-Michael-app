@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:5000';
+// Automatically detect environment
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://st-michael-app.onrender.com'
+  : 'http://127.0.0.1:5000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,11 +15,11 @@ const api = axios.create({
 // Request interceptor to add token to every request
 api.interceptors.request.use(
   (config) => {
-    // FIXED: Changed from 'token' to 'access_token' to match login storage
     const token = localStorage.getItem('access_token');
     
-    // Debug logging (remove after fixing)
+    // Debug logging (can remove in production)
     console.log('🔑 Token present:', !!token);
+    console.log('🌐 API URL:', API_BASE_URL);
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -40,7 +43,7 @@ api.interceptors.response.use(
       
       // Token expired or invalid - clear auth and redirect to login
       localStorage.removeItem('token');
-      localStorage.removeItem('access_token'); // Clear both just in case
+      localStorage.removeItem('access_token');
       localStorage.removeItem('auth');
       localStorage.removeItem('user');
       
