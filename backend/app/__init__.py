@@ -48,6 +48,11 @@ def create_app():
     db.init_app(app)
     jwt = JWTManager(app)
     
+    # AUTO-CREATE DATABASE TABLES ON STARTUP
+    with app.app_context():
+        db.create_all()
+        print("✅ Database tables created/verified!")
+    
     # Register blueprints
     from app.routes.auth import auth_bp
     from app.routes.sacraments import sacraments_bp
