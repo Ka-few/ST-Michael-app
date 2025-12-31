@@ -1,53 +1,49 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Automatically detect environment
-const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://st-michael-app.onrender.com'
-  : 'http://127.0.0.1:5000';
+// Base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+if (!API_BASE_URL) {
+  console.warn("⚠️ VITE_API_BASE_URL is not set. Requests may fail.");
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor to add token to every request
+// ---------------- JWT Request Interceptor ----------------
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
-    
-    // Debug logging (can remove in production)
-    console.log('🔑 Token present:', !!token);
-    console.log('🌐 API URL:', API_BASE_URL);
-    
+    const token = localStorage.getItem("access_token"); // JWT stored by AuthContext
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("🔑 JWT attached:", token.substring(0, 10) + "..."); // debug
     } else {
-      console.warn('⚠️ No token found in localStorage');
+      console.warn("⚠️ No JWT token found in localStorage");
     }
-    
+    console.log("🌐 API URL used:", API_BASE_URL);
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle 401 errors
+// ---------------- JWT Response Interceptor ----------------
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error('🚫 Unauthorized - redirecting to login');
-      
-      // Token expired or invalid - clear auth and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('auth');
-      localStorage.removeItem('user');
-      
-      window.location.href = '/login';
+      console.error("🚫 Unauthorized. Clearing token and redirecting to login.");
+
+      // Clear stored auth data
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("auth");
+      localStorage.removeItem("user");
+
+      // Redirect to login page
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
