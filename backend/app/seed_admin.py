@@ -2,7 +2,6 @@ from app.models import db, User
 from werkzeug.security import generate_password_hash
 import os
 
-
 def create_admin():
     admin_email = os.getenv("ADMIN_EMAIL")
     admin_password = os.getenv("ADMIN_PASSWORD")
@@ -16,13 +15,18 @@ def create_admin():
         print("ℹ️ Admin already exists")
         return
 
+    # Change 'password' to 'password_hash' (or whatever your User model uses)
     admin = User(
         name="Administrator",
         email=admin_email,
         role="admin",
-        password=generate_password_hash(admin_password)
+        password_hash=generate_password_hash(admin_password) 
     )
 
-    db.session.add(admin)
-    db.session.commit()
-    print("✅ Admin user created")
+    try:
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ Admin user created")
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Failed to create admin: {e}")
