@@ -11,7 +11,7 @@ def create_app():
     app.url_map.strict_slashes = False
     
     # CORS Configuration
-    allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+    allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173, https://st-michael-app-9uok.vercel.app').split(',')
     
     CORS(app, 
          resources={r"/*": {
